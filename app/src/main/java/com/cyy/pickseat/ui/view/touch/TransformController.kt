@@ -41,11 +41,23 @@ class TransformController(
         invalidateCallback()
     }
     
+    // 缩放惯性
+    private val scaleInertiaController = ScaleInertiaController { scaleFactor, focusX, focusY ->
+        applyScale(scaleFactor, focusX, focusY)
+    }
+    
     /**
      * 更新惯性滚动（在computeScroll中调用）
      */
     fun updateFling(): Boolean {
         return flingController.updateFling()
+    }
+    
+    /**
+     * 更新缩放惯性（在computeScroll中调用）
+     */
+    fun updateScaleInertia(): Boolean {
+        return scaleInertiaController.updateScaleInertia()
     }
     
     /**
@@ -94,6 +106,27 @@ class TransformController(
             onScaleChangeCallback?.invoke(scaleFactor, minScale, maxScale)
             invalidateCallback()
         }
+    }
+    
+    /**
+     * 记录缩放事件（用于计算惯性）
+     */
+    fun recordScaleEvent(scaleFactor: Float, focusX: Float, focusY: Float) {
+        scaleInertiaController.recordScaleEvent(scaleFactor, focusX, focusY)
+    }
+    
+    /**
+     * 开始缩放惯性
+     */
+    fun startScaleInertia() {
+        scaleInertiaController.startScaleInertia { invalidateCallback() }
+    }
+    
+    /**
+     * 开始新的缩放手势
+     */
+    fun startNewScaleGesture() {
+        scaleInertiaController.startNewScaleGesture()
     }
     
     /**
@@ -164,6 +197,7 @@ class TransformController(
     fun stopAllAnimations() {
         scaleAnimator?.cancel()
         flingController.stop()
+        scaleInertiaController.stop()
     }
     
     /**

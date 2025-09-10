@@ -3,6 +3,7 @@ package com.cyy.pickseat.ui.view
 import android.content.Context
 import android.graphics.*
 import android.util.AttributeSet
+import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import com.cyy.pickseat.data.model.Seat
@@ -88,6 +89,11 @@ class SeatMapViewRefactored @JvmOverloads constructor(
         touchHandler.setSeatFinderCallback { x, y ->
             venueRenderer.findSeatAt(x, y)
         }
+        
+        // 设置座位渲染器回调
+        touchHandler.setSeatRendererCallback {
+            venueRenderer.getSeatRenderer()
+        }
     }
     
     /**
@@ -123,9 +129,7 @@ class SeatMapViewRefactored @JvmOverloads constructor(
      * 获取选中的座位
      */
     fun getSelectedSeats(): List<Seat> {
-        // 这里需要从渲染器获取选中的座位
-        // 可以考虑在VenueRenderer中添加获取选中座位的方法
-        return emptyList() // 临时返回空列表
+        return venueRenderer.getSelectedSeats()
     }
     
     /**
@@ -183,16 +187,23 @@ class SeatMapViewRefactored @JvmOverloads constructor(
         if (transformController.getMatrix().invert(inverseMatrix)) {
             inverseMatrix.mapRect(visibleRect)
         }
+        
+        // 添加调试信息
+        Log.i("aaron", "VisibleRect: $visibleRect, Scale: ${transformController.getCurrentScale()}")
     }
     
     override fun onTouchEvent(event: MotionEvent): Boolean {
+        Log.i("aaron","ScaleInertia: onTouchEvent")
         return touchHandler.onTouchEvent(event, transformController.getMatrix()) || super.onTouchEvent(event)
     }
     
     override fun computeScroll() {
         super.computeScroll()
-        // 更新惯性滚动
-        if (transformController.updateFling()) {
+        // 更新惯性效果
+        val hasFling = transformController.updateFling()
+        val hasScaleInertia = transformController.updateScaleInertia()
+        
+        if (hasFling || hasScaleInertia) {
             invalidate()
         }
     }

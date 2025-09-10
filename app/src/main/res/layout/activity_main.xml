@@ -15,6 +15,7 @@
         android:background="#FFFFFF"
         android:elevation="4dp"
         android:gravity="center_vertical"
+        android:layout_marginTop="40dp"
         android:orientation="horizontal"
         android:paddingHorizontal="16dp"
         app:layout_constraintEnd_toEndOf="parent"
@@ -57,8 +58,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="刷新页面"
                 android:padding="8dp"
-                android:src="@drawable/ic_refresh"
-                android:tint="#666666" />
+                android:src="@drawable/ic_refresh" />
 
             <!-- 回到全局视图按钮 -->
             <ImageButton
@@ -69,7 +69,6 @@
                 android:contentDescription="回到全局视图"
                 android:padding="8dp"
                 android:src="@drawable/ic_fit_screen"
-                android:tint="#666666"
                 android:visibility="gone" />
 
         </LinearLayout>
@@ -87,7 +86,7 @@
         app:layout_constraintTop_toBottomOf="@id/topToolbar">
 
         <!-- 座位图视图 -->
-        <com.cyy.pickseat.ui.view.SeatMapView
+        <com.cyy.pickseat.ui.view.SeatMapViewRefactored
             android:id="@+id/seatMapView"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />

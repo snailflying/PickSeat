@@ -105,3 +105,4 @@ class SeatRenderer : BaseRenderer() {
         return selectedSeats.contains(seatId)
     }
 }
+

@@ -47,3 +47,4 @@ abstract class BaseRenderer {
         paint.style = style
     }
 }
+

@@ -2,6 +2,7 @@ package com.cyy.pickseat.ui.view.touch
 
 import android.content.Context
 import android.graphics.Matrix
+import android.util.Log
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
@@ -24,6 +25,8 @@ class TouchHandler(
     
     // 座位查找回调
     private var seatFinderCallback: ((Float, Float) -> Seat?)? = null
+    // 座位渲染器回调（用于更新选中状态）
+    private var seatRendererCallback: (() -> com.cyy.pickseat.ui.view.renderer.SeatRenderer?)? = null
     
     init {
         scaleGestureDetector = ScaleGestureDetector(context, ScaleListener())
@@ -53,6 +56,13 @@ class TouchHandler(
     }
     
     /**
+     * 设置座位渲染器回调
+     */
+    fun setSeatRendererCallback(callback: () -> com.cyy.pickseat.ui.view.renderer.SeatRenderer?) {
+        seatRendererCallback = callback
+    }
+    
+    /**
      * 将屏幕坐标转换为画布坐标
      */
     private fun screenToCanvas(screenX: Float, screenY: Float): Pair<Float, Float> {
@@ -68,22 +78,43 @@ class TouchHandler(
     private inner class ScaleListener : ScaleGestureDetector.SimpleOnScaleGestureListener() {
         private var scaleFocusX = 0f
         private var scaleFocusY = 0f
+        private var lastScaleTime = 0L
         
         override fun onScaleBegin(detector: ScaleGestureDetector): Boolean {
             transformController.stopAllAnimations()
+            transformController.startNewScaleGesture() // 重置缩放历史
             scaleFocusX = detector.focusX
             scaleFocusY = detector.focusY
+            lastScaleTime = System.currentTimeMillis()
             return true
         }
         
         override fun onScale(detector: ScaleGestureDetector): Boolean {
+            Log.i("aaron","ScaleInertia: onScale")
+            val currentTime = System.currentTimeMillis()
             val scaleFactor = detector.scaleFactor
+            
+            // 记录缩放事件用于惯性计算
+            transformController.recordScaleEvent(scaleFactor, scaleFocusX, scaleFocusY)
+            
+            // 应用缩放
             transformController.applyScale(scaleFactor, scaleFocusX, scaleFocusY)
+            
+            lastScaleTime = currentTime
             return true
         }
         
         override fun onScaleEnd(detector: ScaleGestureDetector) {
             super.onScaleEnd(detector)
+            
+            // 检查是否需要启动缩放惯性
+            val timeSinceLastScale = System.currentTimeMillis() - lastScaleTime
+            Log.i("aaron","ScaleInertia: velocity onScaleEnd timeSinceLastScale:$timeSinceLastScale")
+            if (timeSinceLastScale < 200) { // 放宽时间窗口到200ms
+                transformController.startScaleInertia()
+            }
+            
+            // 约束和回弹
             transformController.constrainAndBounceIfNeeded()
         }
     }
@@ -104,11 +135,21 @@ class TouchHandler(
             // 查找点击的座位
             val clickedSeat = seatFinderCallback?.invoke(canvasX, canvasY)
             if (clickedSeat != null && clickedSeat.status == com.cyy.pickseat.data.model.SeatStatus.AVAILABLE) {
-                // 切换选中状态
-                val isSelected = !clickedSeat.isSelected
-                clickedSeat.isSelected = isSelected
-                seatClickCallback(clickedSeat, isSelected)
-                return true
+                val seatRenderer = seatRendererCallback?.invoke()
+                if (seatRenderer != null) {
+                    // 切换选中状态
+                    val isSelected = !seatRenderer.isSeatSelected(clickedSeat.id)
+                    
+                    if (isSelected) {
+                        seatRenderer.addSelectedSeat(clickedSeat.id)
+                    } else {
+                        seatRenderer.removeSelectedSeat(clickedSeat.id)
+                    }
+                    
+                    clickedSeat.isSelected = isSelected
+                    seatClickCallback(clickedSeat, isSelected)
+                    return true
+                }
             }
             
             return false
@@ -153,3 +194,4 @@ class TouchHandler(
         }
     }
 }
+

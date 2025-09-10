@@ -114,3 +114,4 @@ class StageRenderer : BaseRenderer() {
         paint.alpha = 255
     }
 }
+

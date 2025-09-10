@@ -38,15 +38,19 @@ class AreaRenderer : BaseRenderer() {
     ) {
         // 检查区域是否可见
         tempRect.set(area.x, area.y, area.x + area.width, area.y + area.height)
-        if (!shouldRender(tempRect, visibleRect)) {
+        val isVisible = shouldRender(tempRect, visibleRect)
+        if (!isVisible) {
             return
         }
+        
+        // 添加调试信息
+        android.util.Log.i("aaron", "Rendering area: ${area.name}, scale: $scaleFactor, visible: $isVisible")
         
         // 根据缩放级别决定渲染策略
         when {
             scaleFactor < 0.3f -> renderAreaAsBlock(canvas, area)
-            scaleFactor < 1f -> renderAreaWithReducedDetail(canvas, area)
-            else -> renderAreaWithFullDetail(canvas, area, scaleFactor)
+            scaleFactor < 1f -> renderAreaWithReducedDetail(canvas, area, visibleRect)
+            else -> renderAreaWithFullDetail(canvas, area, visibleRect, scaleFactor)
         }
     }
     
@@ -78,14 +82,14 @@ class AreaRenderer : BaseRenderer() {
     /**
      * 以简化细节绘制区域
      */
-    private fun renderAreaWithReducedDetail(canvas: Canvas, area: SeatArea) {
+    private fun renderAreaWithReducedDetail(canvas: Canvas, area: SeatArea, visibleRect: RectF) {
         // 只绘制部分座位以提高性能
         val step = 2 // 每隔2个座位绘制一个
         
         area.seats.forEachIndexed { index, seat ->
             if (index % step == 0) {
                 tempRect.set(seat.x, seat.y, seat.x + seat.width, seat.y + seat.height)
-                if (shouldRender(tempRect, RectF())) { // 简化的可见性检查
+                if (shouldRender(tempRect, visibleRect)) { // 使用正确的可见性检查
                     seatRenderer.renderSeat(canvas, seat, 1f, false)
                 }
             }
@@ -95,10 +99,10 @@ class AreaRenderer : BaseRenderer() {
     /**
      * 以完整细节绘制区域
      */
-    private fun renderAreaWithFullDetail(canvas: Canvas, area: SeatArea, scaleFactor: Float) {
+    private fun renderAreaWithFullDetail(canvas: Canvas, area: SeatArea, visibleRect: RectF, scaleFactor: Float) {
         area.seats.forEach { seat ->
             tempRect.set(seat.x, seat.y, seat.x + seat.width, seat.y + seat.height)
-            if (shouldRender(tempRect, RectF())) { // 可以传入实际的visibleRect进行优化
+            if (shouldRender(tempRect, visibleRect)) { // 使用正确的visibleRect
                 seatRenderer.renderSeat(canvas, seat, scaleFactor, scaleFactor > 2f)
             }
         }
@@ -118,3 +122,4 @@ class AreaRenderer : BaseRenderer() {
         }
     }
 }
+

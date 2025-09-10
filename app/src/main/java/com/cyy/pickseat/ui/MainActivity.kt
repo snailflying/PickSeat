@@ -10,7 +10,7 @@ import com.cyy.pickseat.R
 import com.cyy.pickseat.data.model.Seat
 import com.cyy.pickseat.data.model.VenueLayout
 import com.cyy.pickseat.databinding.ActivityMainBinding
-import com.cyy.pickseat.ui.view.SeatMapView
+import com.cyy.pickseat.ui.view.SeatMapViewRefactored
 import com.cyy.pickseat.utils.MockDataGenerator
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -20,8 +20,8 @@ import kotlin.math.roundToInt
  * 展示选座功能和Demo
  */
 class MainActivity : AppCompatActivity(), 
-    SeatMapView.OnSeatClickListener, 
-    SeatMapView.OnScaleChangeListener {
+    SeatMapViewRefactored.OnSeatClickListener, 
+    SeatMapViewRefactored.OnScaleChangeListener {
 
     private lateinit var binding: ActivityMainBinding
     private var currentVenueLayout: VenueLayout? = null
@@ -293,7 +293,7 @@ class MainActivity : AppCompatActivity(),
         binding.tvSeatCount.text = "座位: $seatCount"
     }
     
-    // SeatMapView.OnSeatClickListener 实现
+    // SeatMapViewRefactored.OnSeatClickListener 实现
     override fun onSeatClick(seat: Seat, isSelected: Boolean) {
         if (isSelected) {
             selectedSeats.add(seat)
@@ -303,7 +303,7 @@ class MainActivity : AppCompatActivity(),
         updateSelectionInfo()
     }
     
-    // SeatMapView.OnScaleChangeListener 实现
+    // SeatMapViewRefactored.OnScaleChangeListener 实现
     override fun onScaleChanged(currentScale: Float, minScale: Float, maxScale: Float) {
         // 当放大超过1.5倍时显示重置按钮
         updateResetButtonVisibility(currentScale > 1.5f)

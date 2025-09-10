@@ -90,6 +90,18 @@ class VenueRenderer : BaseRenderer() {
     fun getSeatRenderer(): SeatRenderer = areaRenderer.getSeatRenderer()
     
     /**
+     * 获取选中的座位
+     */
+    fun getSelectedSeats(): List<Seat> {
+        val layout = venueLayout ?: return emptyList()
+        val seatRenderer = getSeatRenderer()
+        
+        return layout.getAllSeats().filter { seat ->
+            seatRenderer.isSeatSelected(seat.id)
+        }
+    }
+    
+    /**
      * 获取区域渲染器
      */
     fun getAreaRenderer(): AreaRenderer = areaRenderer

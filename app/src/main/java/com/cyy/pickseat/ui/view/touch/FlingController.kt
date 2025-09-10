@@ -15,7 +15,7 @@ class FlingController(
     private var flingVelocityY = 0f
     private var flingStartTime = 0L
     private var isFlinging = false
-    private val friction = 0.015f // 摩擦系数
+    private val friction = 0.03f // 增加摩擦系数，减少惯性强度
     
     /**
      * 开始惯性滚动
@@ -56,7 +56,7 @@ class FlingController(
         val currentVelocityY = flingVelocityY * exp(-friction * elapsed * 60f)
         
         // 如果速度太小，停止惯性滚动
-        if (abs(currentVelocityX) < 50f && abs(currentVelocityY) < 50f) {
+        if (abs(currentVelocityX) < 100f && abs(currentVelocityY) < 100f) { // 提高停止阈值
             isFlinging = false
             return false
         }
