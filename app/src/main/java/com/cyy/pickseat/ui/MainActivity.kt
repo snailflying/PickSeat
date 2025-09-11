@@ -12,6 +12,7 @@ import com.cyy.pickseat.data.model.VenueLayout
 import com.cyy.pickseat.databinding.ActivityMainBinding
 import com.cyy.pickseat.ui.view.SeatMapViewRefactored
 import com.cyy.pickseat.utils.MockDataGenerator
+import com.cyy.pickseat.data.parser.ProtobufParser
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -26,6 +27,7 @@ class MainActivity : AppCompatActivity(),
     private lateinit var binding: ActivityMainBinding
     private var currentVenueLayout: VenueLayout? = null
     private val selectedSeats = mutableListOf<Seat>()
+    private lateinit var protobufParser: ProtobufParser
     
     // 性能监控
     private var lastFrameTime = System.currentTimeMillis()
@@ -36,6 +38,9 @@ class MainActivity : AppCompatActivity(),
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        
+        // 初始化protobuf解析器
+        protobufParser = ProtobufParser(this)
         
         setupViews()
         setupEventListeners()
@@ -68,6 +73,8 @@ class MainActivity : AppCompatActivity(),
         // 刷新按钮
         binding.btnRefresh.setOnClickListener {
             refreshSeatMap()
+            // 演示protobuf功能
+            demonstrateProtobufUsage()
         }
         
         // 回到全局视图按钮
@@ -307,5 +314,48 @@ class MainActivity : AppCompatActivity(),
     override fun onScaleChanged(currentScale: Float, minScale: Float, maxScale: Float) {
         // 当放大超过1.5倍时显示重置按钮
         updateResetButtonVisibility(currentScale > 1.5f)
+    }
+    
+    /**
+     * 演示protobuf功能
+     */
+    private fun demonstrateProtobufUsage() {
+        lifecycleScope.launch {
+            try {
+                currentVenueLayout?.let { layout ->
+                    // 1. 将VenueLayout转换为protobuf格式
+                    val protobufLayout = protobufParser.convertVenueLayoutToProtobuf(layout)
+                    android.util.Log.i("ProtobufDemo", "Converted layout to protobuf: ${protobufLayout.serializedSize} bytes")
+                    
+                    // 2. 创建SVG protobuf数据
+                    val svgProtobuf = protobufParser.createSvgProtobuf(
+                        svgContent = "<svg>...</svg>",
+                        venueLayout = layout
+                    )
+                    
+                    // 3. 保存为字节数组
+                    val svgBytes = protobufParser.saveProtobufToBytes(svgProtobuf)
+                    android.util.Log.i("ProtobufDemo", "SVG protobuf size: ${svgBytes.size} bytes")
+                    
+                    // 4. 从字节数组解析
+                    val parsedLayout = protobufParser.parseSvgFromBytes(svgBytes)
+                    android.util.Log.i("ProtobufDemo", "Parsed layout: ${parsedLayout?.name}")
+                    
+                    // 5. 创建GeoJSON protobuf数据
+                    val geoJsonProtobuf = protobufParser.createGeoJsonProtobuf(
+                        geoJsonContent = """{"type":"FeatureCollection","features":[]}""",
+                        venueLayout = layout
+                    )
+                    
+                    val geoJsonBytes = protobufParser.saveProtobufToBytes(geoJsonProtobuf)
+                    android.util.Log.i("ProtobufDemo", "GeoJSON protobuf size: ${geoJsonBytes.size} bytes")
+                    
+                    Toast.makeText(this@MainActivity, "Protobuf演示完成，请查看日志", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("ProtobufDemo", "Error demonstrating protobuf", e)
+                Toast.makeText(this@MainActivity, "Protobuf演示出错: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 }

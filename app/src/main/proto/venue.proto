@@ -1,0 +1,85 @@
+syntax = "proto3";
+
+package com.cyy.pickseat.proto;
+
+option java_package = "com.cyy.pickseat.proto";
+option java_outer_classname = "VenueProto";
+option optimize_for = LITE_RUNTIME;
+
+// 座位状态枚举
+enum SeatStatus {
+    AVAILABLE = 0;
+    OCCUPIED = 1;
+    RESERVED = 2;
+    MAINTENANCE = 3;
+}
+
+// 座位信息
+message Seat {
+    string id = 1;
+    float x = 2;
+    float y = 3;
+    float width = 4;
+    float height = 5;
+    SeatStatus status = 6;
+    string row = 7;
+    string column = 8;
+    string name = 9;
+    double price = 10;
+    string area_id = 11;
+    bool is_selected = 12;
+}
+
+// 座位区域
+message SeatArea {
+    string id = 1;
+    string name = 2;
+    float x = 3;
+    float y = 4;
+    float width = 5;
+    float height = 6;
+    string color = 7;
+    repeated Seat seats = 8;
+    string description = 9;
+}
+
+// 舞台信息
+message Stage {
+    string name = 1;
+    float x = 2;
+    float y = 3;
+    float width = 4;
+    float height = 5;
+    string color = 6;
+}
+
+// 场馆布局
+message VenueLayout {
+    string id = 1;
+    string name = 2;
+    float width = 3;
+    float height = 4;
+    repeated SeatArea areas = 5;
+    optional Stage stage = 6;
+    string background_image = 7;
+    string svg_data = 8;
+    int64 created_at = 9;
+    float max_scale = 10;
+    float min_scale = 11;
+}
+
+// SVG数据包装
+message SvgData {
+    string svg_content = 1;
+    optional VenueLayout venue_layout = 2;
+    string metadata = 3;
+    int64 timestamp = 4;
+}
+
+// GeoJSON数据包装
+message GeoJsonData {
+    string geo_json_content = 1;
+    optional VenueLayout venue_layout = 2;
+    string metadata = 3;
+    int64 timestamp = 4;
+}
