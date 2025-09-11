@@ -1,18 +1,130 @@
 package com.cyy.pickseat.utils
 
+import android.content.Context
 import com.cyy.pickseat.data.model.*
+import com.cyy.pickseat.data.parser.GeoJsonParser
+import com.cyy.pickseat.data.parser.ProtobufParser
+import com.cyy.pickseat.data.parser.SvgParser
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileInputStream
 import kotlin.math.*
 import kotlin.random.Random
 
 /**
- * Mock数据生成器 - 用于生成10W+座位的大场馆数据
+ * 数据源类型枚举
+ */
+enum class DataSourceType {
+    /** 程序生成的Mock数据（10W+座位） */
+    MOCK_GENERATED,
+    /** SVG格式数据 */
+    SVG_ASSETS,
+    /** GeoJSON格式数据 */
+    GEOJSON_ASSETS,
+    /** Protobuf格式数据 */
+    PROTOBUF_ASSETS
+}
+
+/**
+ * Mock数据生成器 - 支持多种数据源
  */
 object MockDataGenerator {
     
     private val gson = Gson()
+    
+    /**
+     * 根据数据源类型加载场馆数据
+     */
+    suspend fun loadVenueData(context: Context, dataSourceType: DataSourceType): VenueLayout? = withContext(Dispatchers.IO) {
+        try {
+            when (dataSourceType) {
+                DataSourceType.MOCK_GENERATED -> generateLargeStadium()
+                DataSourceType.SVG_ASSETS -> loadFromSvgAssets(context)
+                DataSourceType.GEOJSON_ASSETS -> loadFromGeoJsonAssets(context)
+                DataSourceType.PROTOBUF_ASSETS -> loadFromProtobufAssets(context)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("MockDataGenerator", "Error loading venue data for $dataSourceType", e)
+            null
+        }
+    }
+    
+    /**
+     * 从SVG assets加载数据
+     */
+    private suspend fun loadFromSvgAssets(context: Context): VenueLayout? {
+        return try {
+            val svgParser = SvgParser(context)
+            val svgContent = context.assets.open("data/venue_example.svg").bufferedReader().use { it.readText() }
+            val venueLayout = svgParser.parseVenueLayout(svgContent)
+            android.util.Log.i("MockDataGenerator", "Loaded SVG data: ${venueLayout?.name}, seats: ${venueLayout?.getTotalSeatCount()}")
+            venueLayout
+        } catch (e: Exception) {
+            android.util.Log.e("MockDataGenerator", "Error loading SVG assets", e)
+            null
+        }
+    }
+    
+    /**
+     * 从GeoJSON assets加载数据
+     */
+    private suspend fun loadFromGeoJsonAssets(context: Context): VenueLayout? {
+        return try {
+            val geoJsonParser = GeoJsonParser()
+            val geoJsonContent = context.assets.open("data/venue_example.geojson").bufferedReader().use { it.readText() }
+            val venueLayout = geoJsonParser.parseVenueLayout(geoJsonContent)
+            android.util.Log.i("MockDataGenerator", "Loaded GeoJSON data: ${venueLayout?.name}, seats: ${venueLayout?.getTotalSeatCount()}")
+            venueLayout
+        } catch (e: Exception) {
+            android.util.Log.e("MockDataGenerator", "Error loading GeoJSON assets", e)
+            null
+        }
+    }
+    
+    /**
+     * 从Protobuf assets加载数据
+     */
+    private suspend fun loadFromProtobufAssets(context: Context): VenueLayout? {
+        return try {
+            val protobufParser = ProtobufParser(context)
+            
+            // 首先确保protobuf文件存在
+            if (!ProtobufDataGenerator.hasProtobufFiles(context)) {
+                android.util.Log.i("MockDataGenerator", "Generating protobuf files...")
+                ProtobufDataGenerator.generateExampleProtobufData(context)
+            }
+            
+            // 加载SVG protobuf数据（也可以选择GeoJSON）
+            val (svgPath, _) = ProtobufDataGenerator.getProtobufFilePaths(context)
+            val svgFile = File(svgPath)
+            
+            if (svgFile.exists()) {
+                val venueLayout = protobufParser.parseSvgFromProtobuf(FileInputStream(svgFile))
+                android.util.Log.i("MockDataGenerator", "Loaded Protobuf data: ${venueLayout?.name}, seats: ${venueLayout?.getTotalSeatCount()}")
+                venueLayout
+            } else {
+                android.util.Log.w("MockDataGenerator", "Protobuf file not found: $svgPath")
+                null
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("MockDataGenerator", "Error loading Protobuf assets", e)
+            null
+        }
+    }
+    
+    /**
+     * 获取数据源描述
+     */
+    fun getDataSourceDescription(dataSourceType: DataSourceType): String {
+        return when (dataSourceType) {
+            DataSourceType.MOCK_GENERATED -> "程序生成 (10W+座位)"
+            DataSourceType.SVG_ASSETS -> "SVG格式 (Assets)"
+            DataSourceType.GEOJSON_ASSETS -> "GeoJSON格式 (Assets)"
+            DataSourceType.PROTOBUF_ASSETS -> "Protobuf格式 (二进制)"
+        }
+    }
     
     /**
      * 生成大型体育场数据（10W+座位）

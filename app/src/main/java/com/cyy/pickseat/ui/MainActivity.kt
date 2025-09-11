@@ -12,6 +12,7 @@ import com.cyy.pickseat.data.model.VenueLayout
 import com.cyy.pickseat.databinding.ActivityMainBinding
 import com.cyy.pickseat.ui.view.SeatMapViewRefactored
 import com.cyy.pickseat.utils.MockDataGenerator
+import com.cyy.pickseat.utils.DataSourceType
 import com.cyy.pickseat.data.parser.ProtobufParser
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -28,6 +29,7 @@ class MainActivity : AppCompatActivity(),
     private var currentVenueLayout: VenueLayout? = null
     private val selectedSeats = mutableListOf<Seat>()
     private lateinit var protobufParser: ProtobufParser
+    private var currentDataSourceType = DataSourceType.MOCK_GENERATED
     
     // 性能监控
     private var lastFrameTime = System.currentTimeMillis()
@@ -104,55 +106,76 @@ class MainActivity : AppCompatActivity(),
      */
     private fun loadDefaultVenue() {
         showLoading(true)
-        lifecycleScope.launch {
-            try {
-                // 生成大型体育场数据
-                val stadium = MockDataGenerator.generateLargeStadium()
-                loadVenueLayout(stadium)
-            } catch (e: Exception) {
-                e.printStackTrace()
-                showError("加载场馆数据失败: ${e.message}")
-            } finally {
-                showLoading(false)
-            }
-        }
+        // 默认加载Mock生成的数据
+        loadVenueByDataSource(DataSourceType.MOCK_GENERATED)
     }
     
     /**
      * 显示场馆选择对话框
      */
     private fun showVenueSelectionDialog() {
-        val venueTypes = arrayOf("大型体育场 (10W+座位)", "国家大剧院 (5W+座位)", "音乐厅 (2W+座位)")
+        showDataSourceSelectionDialog()
+    }
+    
+    /**
+     * 显示数据源选择对话框
+     */
+    private fun showDataSourceSelectionDialog() {
+        val dataSourceTypes = DataSourceType.values()
+        val dataSourceNames = dataSourceTypes.map { MockDataGenerator.getDataSourceDescription(it) }.toTypedArray()
         
         AlertDialog.Builder(this)
-            .setTitle("选择场馆类型")
-            .setItems(venueTypes) { _, which ->
-                loadVenueByType(which)
+            .setTitle("选择数据源类型")
+            .setItems(dataSourceNames) { _, which ->
+                val selectedType = dataSourceTypes[which]
+                loadVenueByDataSource(selectedType)
             }
             .show()
     }
     
     /**
-     * 根据类型加载场馆
+     * 根据数据源类型加载场馆
      */
-    private fun loadVenueByType(type: Int) {
+    private fun loadVenueByDataSource(dataSourceType: DataSourceType) {
         showLoading(true)
+        currentDataSourceType = dataSourceType
+        
         lifecycleScope.launch {
             try {
-                val venue = when (type) {
-                    0 -> MockDataGenerator.generateLargeStadium()
-                    1 -> MockDataGenerator.generateLargeTheater()
-                    2 -> MockDataGenerator.generateConcertHall()
-                    else -> MockDataGenerator.generateLargeStadium()
+                val venueLayout = MockDataGenerator.loadVenueData(this@MainActivity, dataSourceType)
+                
+                if (venueLayout != null) {
+                    loadVenueLayout(venueLayout)
+                    
+                    // 更新UI信息显示数据源类型
+                    binding.tvVenueName.text = "${venueLayout.name} (${MockDataGenerator.getDataSourceDescription(dataSourceType)})"
+                    
+                    Toast.makeText(this@MainActivity, "已加载 ${MockDataGenerator.getDataSourceDescription(dataSourceType)} 数据", Toast.LENGTH_SHORT).show()
+                } else {
+                    showError("加载 ${MockDataGenerator.getDataSourceDescription(dataSourceType)} 数据失败")
                 }
-                loadVenueLayout(venue)
+                
             } catch (e: Exception) {
                 e.printStackTrace()
                 showError("加载场馆失败: ${e.message}")
+                android.util.Log.e("MainActivity", "Error loading venue data", e)
             } finally {
                 showLoading(false)
             }
         }
+    }
+    
+    /**
+     * 根据类型加载场馆（保留兼容性）
+     */
+    private fun loadVenueByType(type: Int) {
+        val dataSourceType = when (type) {
+            0 -> DataSourceType.MOCK_GENERATED
+            1 -> DataSourceType.SVG_ASSETS
+            2 -> DataSourceType.GEOJSON_ASSETS
+            else -> DataSourceType.MOCK_GENERATED
+        }
+        loadVenueByDataSource(dataSourceType)
     }
     
     /**

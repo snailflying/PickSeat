@@ -1,0 +1,137 @@
+{
+  "type": "FeatureCollection",
+  "metadata": {
+    "name": "示例体育场",
+    "capacity": 50000,
+    "venue_type": "stadium",
+    "created_at": "2024-01-01T00:00:00Z"
+  },
+  "bbox": [0, 0, 2000, 1500],
+  "features": [
+    {
+      "type": "Feature",
+      "id": "stage",
+      "properties": {
+        "name": "足球场",
+        "type": "stage",
+        "color": "#4CAF50"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [600, 500],
+          [1400, 500],
+          [1400, 1000],
+          [600, 1000],
+          [600, 500]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "area-a",
+      "properties": {
+        "name": "北看台A区",
+        "type": "seat_area",
+        "color": "#FFD700",
+        "capacity": 12000,
+        "price_range": "100-300"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [200, 100],
+          [1800, 100],
+          [1800, 400],
+          [200, 400],
+          [200, 100]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "area-b",
+      "properties": {
+        "name": "南看台B区",
+        "type": "seat_area",
+        "color": "#FF9800",
+        "capacity": 12000,
+        "price_range": "100-300"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [200, 1100],
+          [1800, 1100],
+          [1800, 1400],
+          [200, 1400],
+          [200, 1100]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "area-c",
+      "properties": {
+        "name": "西看台C区",
+        "type": "seat_area",
+        "color": "#2196F3",
+        "capacity": 10000,
+        "price_range": "80-250"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [50, 450],
+          [550, 450],
+          [550, 1050],
+          [50, 1050],
+          [50, 450]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "area-d",
+      "properties": {
+        "name": "东看台D区",
+        "type": "seat_area",
+        "color": "#9C27B0",
+        "capacity": 10000,
+        "price_range": "80-250"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [1450, 450],
+          [1950, 450],
+          [1950, 1050],
+          [1450, 1050],
+          [1450, 450]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "area-vip",
+      "properties": {
+        "name": "VIP包厢区",
+        "type": "seat_area",
+        "color": "#F44336",
+        "capacity": 500,
+        "price_range": "500-1000",
+        "area_type": "vip"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [800, 200],
+          [1200, 200],
+          [1200, 400],
+          [800, 400],
+          [800, 200]
+        ]]
+      }
+    }
+  ]
+}

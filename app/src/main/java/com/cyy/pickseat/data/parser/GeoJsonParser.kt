@@ -19,9 +19,13 @@ class GeoJsonParser {
      */
     suspend fun parseVenueLayout(geoJsonString: String): VenueLayout? = withContext(Dispatchers.IO) {
         try {
+            android.util.Log.i("GeoJsonParser", "开始解析GeoJSON数据，长度: ${geoJsonString.length}")
             val jsonObject = JsonParser.parseString(geoJsonString).asJsonObject
-            parseVenueFromGeoJson(jsonObject)
+            val result = parseVenueFromGeoJson(jsonObject)
+            android.util.Log.i("GeoJsonParser", "解析完成，场馆名称: ${result?.name}, 区域数量: ${result?.areas?.size}, 座位总数: ${result?.getTotalSeatCount()}")
+            result
         } catch (e: Exception) {
+            android.util.Log.e("GeoJsonParser", "解析GeoJSON失败", e)
             e.printStackTrace()
             null
         }
@@ -31,12 +35,15 @@ class GeoJsonParser {
      * 从GeoJSON对象解析场馆布局
      */
     private fun parseVenueFromGeoJson(jsonObject: JsonObject): VenueLayout {
+        // 尝试从properties或metadata获取场馆信息
         val properties = jsonObject.getAsJsonObject("properties")
+        val metadata = jsonObject.getAsJsonObject("metadata")
+        val venueInfo = properties ?: metadata
         val features = jsonObject.getAsJsonArray("features")
         
-        val venueId = properties?.get("id")?.asString ?: "venue_${System.currentTimeMillis()}"
-        val venueName = properties?.get("name")?.asString ?: "未知场馆"
-        val venueType = parseVenueType(properties?.get("type")?.asString)
+        val venueId = venueInfo?.get("id")?.asString ?: "venue_${System.currentTimeMillis()}"
+        val venueName = venueInfo?.get("name")?.asString ?: "未知场馆"
+        val venueType = parseVenueType(venueInfo?.get("venue_type")?.asString ?: venueInfo?.get("type")?.asString)
         
         // 解析场馆尺寸
         val bounds = calculateBounds(features)
@@ -55,9 +62,18 @@ class GeoJsonParser {
             
             when (geometryType) {
                 "Polygon", "MultiPolygon" -> {
-                    val area = parseSeatArea(featureObj, bounds.minX, bounds.minY)
-                    if (area != null) {
-                        areas.add(area)
+                    // 检查是否是舞台
+                    if (featureProperties?.get("type")?.asString == "stage") {
+                        val stageData = parseStage(featureObj, bounds.minX, bounds.minY)
+                        if (stageData != null) {
+                            stage = stageData
+                        }
+                    } else {
+                        // 座位区域
+                        val area = parseSeatArea(featureObj, bounds.minX, bounds.minY)
+                        if (area != null) {
+                            areas.add(area)
+                        }
                     }
                 }
                 "Point" -> {
@@ -87,7 +103,10 @@ class GeoJsonParser {
         val properties = featureObj.getAsJsonObject("properties")
         val geometry = featureObj.getAsJsonObject("geometry")
         
-        val areaId = properties?.get("id")?.asString ?: return null
+        // 跳过舞台类型的特征
+        if (properties?.get("type")?.asString == "stage") return null
+        
+        val areaId = properties?.get("id")?.asString ?: featureObj.get("id")?.asString ?: return null
         val areaName = properties?.get("name")?.asString ?: "未知区域"
         val areaType = parseAreaType(properties?.get("area_type")?.asString)
         val color = properties?.get("color")?.asString ?: "#FFD700"
@@ -130,16 +149,29 @@ class GeoJsonParser {
         if (properties?.get("type")?.asString != "stage") return null
         
         val coordinates = geometry?.getAsJsonArray("coordinates")
-        if (coordinates == null || coordinates.size() < 2) return null
-        
-        val x = coordinates[0].asFloat - offsetX + 50f
-        val y = coordinates[1].asFloat - offsetY + 50f
-        val width = properties.get("width")?.asFloat ?: 200f
-        val height = properties.get("height")?.asFloat ?: 100f
         val name = properties.get("name")?.asString ?: "舞台"
         val color = properties.get("color")?.asString ?: "#FF6B6B"
         
-        return Stage(name, x, y, width, height, color)
+        return when (geometry?.get("type")?.asString) {
+            "Point" -> {
+                if (coordinates == null || coordinates.size() < 2) return null
+                val x = coordinates[0].asFloat - offsetX + 50f
+                val y = coordinates[1].asFloat - offsetY + 50f
+                val width = properties.get("width")?.asFloat ?: 200f
+                val height = properties.get("height")?.asFloat ?: 100f
+                Stage(name, x, y, width, height, color)
+            }
+            "Polygon" -> {
+                if (coordinates == null || coordinates.size() == 0) return null
+                val bounds = calculatePolygonBounds(coordinates)
+                val x = bounds.minX - offsetX + 50f
+                val y = bounds.minY - offsetY + 50f
+                val width = bounds.maxX - bounds.minX
+                val height = bounds.maxY - bounds.minY
+                Stage(name, x, y, width, height, color)
+            }
+            else -> null
+        }
     }
     
     /**

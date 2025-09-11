@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="2000" height="1500" xmlns="http://www.w3.org/2000/svg">
+  <!-- 体育场背景 -->
+  <rect width="2000" height="1500" fill="#f0f8ff"/>
+  
+  <!-- 足球场 -->
+  <rect x="600" y="500" width="800" height="500" fill="#4CAF50" stroke="#2E7D32" stroke-width="3"/>
+  <circle cx="1000" cy="750" r="80" fill="none" stroke="#2E7D32" stroke-width="2"/>
+  <rect x="600" y="650" width="100" height="200" fill="none" stroke="#2E7D32" stroke-width="2"/>
+  <rect x="1300" y="650" width="100" height="200" fill="none" stroke="#2E7D32" stroke-width="2"/>
+  
+  <!-- 座位区域A - 北看台 -->
+  <g id="area-a" data-name="北看台A区" data-color="#FFD700">
+    <rect x="200" y="100" width="1600" height="300" fill="#FFD700" opacity="0.3"/>
+    <!-- 座位行 -->
+    <g class="seat-rows">
+      <rect x="250" y="150" width="1500" height="50" fill="#FFD700" opacity="0.6"/>
+      <rect x="250" y="220" width="1500" height="50" fill="#FFD700" opacity="0.6"/>
+      <rect x="250" y="290" width="1500" height="50" fill="#FFD700" opacity="0.6"/>
+    </g>
+  </g>
+  
+  <!-- 座位区域B - 南看台 -->
+  <g id="area-b" data-name="南看台B区" data-color="#FF9800">
+    <rect x="200" y="1100" width="1600" height="300" fill="#FF9800" opacity="0.3"/>
+    <!-- 座位行 -->
+    <g class="seat-rows">
+      <rect x="250" y="1150" width="1500" height="50" fill="#FF9800" opacity="0.6"/>
+      <rect x="250" y="1220" width="1500" height="50" fill="#FF9800" opacity="0.6"/>
+      <rect x="250" y="1290" width="1500" height="50" fill="#FF9800" opacity="0.6"/>
+    </g>
+  </g>
+  
+  <!-- 座位区域C - 西看台 -->
+  <g id="area-c" data-name="西看台C区" data-color="#2196F3">
+    <rect x="50" y="450" width="500" height="600" fill="#2196F3" opacity="0.3"/>
+    <!-- 座位行 -->
+    <g class="seat-rows">
+      <rect x="100" y="500" width="400" height="50" fill="#2196F3" opacity="0.6"/>
+      <rect x="100" y="600" width="400" height="50" fill="#2196F3" opacity="0.6"/>
+      <rect x="100" y="700" width="400" height="50" fill="#2196F3" opacity="0.6"/>
+      <rect x="100" y="800" width="400" height="50" fill="#2196F3" opacity="0.6"/>
+      <rect x="100" y="900" width="400" height="50" fill="#2196F3" opacity="0.6"/>
+    </g>
+  </g>
+  
+  <!-- 座位区域D - 东看台 -->
+  <g id="area-d" data-name="东看台D区" data-color="#9C27B0">
+    <rect x="1450" y="450" width="500" height="600" fill="#9C27B0" opacity="0.3"/>
+    <!-- 座位行 -->
+    <g class="seat-rows">
+      <rect x="1500" y="500" width="400" height="50" fill="#9C27B0" opacity="0.6"/>
+      <rect x="1500" y="600" width="400" height="50" fill="#9C27B0" opacity="0.6"/>
+      <rect x="1500" y="700" width="400" height="50" fill="#9C27B0" opacity="0.6"/>
+      <rect x="1500" y="800" width="400" height="50" fill="#9C27B0" opacity="0.6"/>
+      <rect x="1500" y="900" width="400" height="50" fill="#9C27B0" opacity="0.6"/>
+    </g>
+  </g>
+  
+  <!-- VIP区域 -->
+  <g id="area-vip" data-name="VIP包厢区" data-color="#F44336">
+    <rect x="800" y="200" width="400" height="200" fill="#F44336" opacity="0.3"/>
+    <rect x="850" y="250" width="300" height="100" fill="#F44336" opacity="0.6"/>
+  </g>
+  
+  <!-- 元数据 -->
+  <metadata>
+    <venue-info>
+      <name>示例体育场</name>
+      <capacity>50000</capacity>
+      <type>stadium</type>
+    </venue-info>
+  </metadata>
+</svg>
