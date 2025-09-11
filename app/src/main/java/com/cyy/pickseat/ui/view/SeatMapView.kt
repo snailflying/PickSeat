@@ -235,11 +235,10 @@ class SeatMapView @JvmOverloads constructor(
      * 绘制座位区域
      */
     private fun drawSeatArea(canvas: Canvas, area: SeatArea) {
-        // 根据缩放级别决定渲染细节
+        // 根据缩放级别决定渲染细节 - 简化策略，避免座位数量突然变化
         when {
-            scaleFactor < 0.3f -> drawAreaAsBlock(canvas, area)
-            scaleFactor < 1f -> drawAreaWithReducedDetail(canvas, area)
-            else -> drawAreaWithFullDetail(canvas, area)
+            scaleFactor < 0.2f -> drawAreaAsBlock(canvas, area) // 极低缩放时只显示区域块
+            else -> drawAreaWithFullDetail(canvas, area) // 其他情况都显示所有座位
         }
     }
     

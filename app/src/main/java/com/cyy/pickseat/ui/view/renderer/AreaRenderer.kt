@@ -46,11 +46,10 @@ class AreaRenderer : BaseRenderer() {
         // 添加调试信息
         android.util.Log.i("aaron", "Rendering area: ${area.name}, scale: $scaleFactor, visible: $isVisible")
         
-        // 根据缩放级别决定渲染策略
+        // 根据缩放级别决定渲染策略 - 简化策略，避免座位数量突然变化
         when {
-            scaleFactor < 0.3f -> renderAreaAsBlock(canvas, area)
-            scaleFactor < 1f -> renderAreaWithReducedDetail(canvas, area, visibleRect)
-            else -> renderAreaWithFullDetail(canvas, area, visibleRect, scaleFactor)
+            scaleFactor < 0.2f -> renderAreaAsBlock(canvas, area) // 极低缩放时只显示区域块
+            else -> renderAreaWithFullDetail(canvas, area, visibleRect, scaleFactor) // 其他情况都显示所有座位
         }
     }
     
