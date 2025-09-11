@@ -15,7 +15,8 @@ import com.cyy.pickseat.data.model.Seat
 class TouchHandler(
     context: Context,
     private val transformController: TransformController,
-    private val seatClickCallback: (Seat, Boolean) -> Unit
+    private val seatClickCallback: (Seat, Boolean) -> Unit,
+    private val invalidateCallback: () -> Unit
 ) {
     
     private val scaleGestureDetector: ScaleGestureDetector
@@ -148,6 +149,10 @@ class TouchHandler(
                     
                     clickedSeat.isSelected = isSelected
                     seatClickCallback(clickedSeat, isSelected)
+                    
+                    // 触发重绘以立即更新座位颜色
+                    Log.i("aaron", "Seat selected: ${clickedSeat.id}, isSelected: $isSelected, triggering invalidate")
+                    invalidateCallback()
                     return true
                 }
             }

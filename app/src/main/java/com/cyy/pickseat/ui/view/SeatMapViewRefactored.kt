@@ -82,7 +82,8 @@ class SeatMapViewRefactored @JvmOverloads constructor(
             transformController = transformController,
             seatClickCallback = { seat, isSelected ->
                 onSeatClickListener?.onSeatClick(seat, isSelected)
-            }
+            },
+            invalidateCallback = { invalidate() }
         )
         
         // 设置座位查找回调
