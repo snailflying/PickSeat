@@ -17,7 +17,7 @@ class ScaleInertiaController(
     private var scaleFocusY = 0f
     private var inertiaStartTime = 0L
     private var isScaling = false
-    private val scaleFriction = 0.025f // 增加摩擦系数，减少惯性强度
+    private val scaleFriction = 0.05f // 摩擦系数，大幅减少惯性强度
     
     // 缩放历史记录（用于计算速度）
     private val scaleHistory = mutableListOf<ScaleEvent>()
@@ -55,7 +55,7 @@ class ScaleInertiaController(
         // 添加调试信息
         Log.i("aaron","ScaleInertia: Calculated velocity = $scaleVelocity, history size = ${scaleHistory.size}")
         
-        if (abs(scaleVelocity) > 0.1f) { // 提高启动阈值，减少不必要的惯性
+        if (abs(scaleVelocity) > 0.2f) { // 启动阈值，只有快速缩放才触发惯性
             isScaling = true
             inertiaStartTime = System.currentTimeMillis()
             Log.i("aaron","ScaleInertia: Started with velocity $scaleVelocity")
@@ -124,7 +124,7 @@ class ScaleInertiaController(
         val currentVelocity = scaleVelocity * exp(-scaleFriction * elapsed * 60f) // 60fps
         
         // 如果速度太小，停止缩放惯性
-        if (abs(currentVelocity) < 0.02f) { // 提高停止阈值，让惯性更快停止
+        if (abs(currentVelocity) < 0.05f) { // 停止阈值，让惯性更快停止
             isScaling = false
             return false
         }
