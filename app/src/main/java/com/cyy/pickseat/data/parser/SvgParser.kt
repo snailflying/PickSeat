@@ -9,7 +9,7 @@ import kotlin.random.Random
 
 /**
  * SVG数据解析器
- * 简化实现，通过解析SVG基本信息生成座位数据
+ * 真正解析SVG文件内容，提取区域和座位信息
  */
 class SvgParser(private val context: Context) {
     
@@ -18,162 +18,158 @@ class SvgParser(private val context: Context) {
      */
     suspend fun parseVenueLayout(svgString: String): VenueLayout? = withContext(Dispatchers.IO) {
         try {
+            android.util.Log.i("SvgParser", "开始解析SVG数据，长度: ${svgString.length}")
+            
             // 解析SVG基本信息
-            val width = extractDimension(svgString, "width") ?: 1000f
-            val height = extractDimension(svgString, "height") ?: 800f
+            val width = extractDimension(svgString, "width") ?: 2000f
+            val height = extractDimension(svgString, "height") ?: 1500f
             val viewBox = extractViewBox(svgString)
             
-            // 使用解析出的尺寸生成场馆数据
-            generateVenueFromSvgInfo(width, height, viewBox, svgString)
+            // 解析场馆名称
+            val venueName = extractVenueName(svgString) ?: "SVG场馆"
+            
+            // 解析座位区域
+            val areas = parseSeatAreas(svgString)
+            
+            // 解析舞台（足球场）
+            val stage = parseStage(svgString)
+            
+            val result = VenueLayout(
+                id = "svg_venue_${System.currentTimeMillis()}",
+                name = venueName,
+                type = VenueType.STADIUM,
+                width = width,
+                height = height,
+                areas = areas,
+                stage = stage,
+                svgData = svgString,
+                maxScale = 6f,
+                minScale = 0.1f
+            )
+            
+            android.util.Log.i("SvgParser", "解析完成，场馆名称: ${result.name}, 区域数量: ${result.areas.size}, 座位总数: ${result.getTotalSeatCount()}")
+            result
         } catch (e: Exception) {
+            android.util.Log.e("SvgParser", "解析SVG失败", e)
             e.printStackTrace()
             null
         }
     }
     
     /**
-     * 从SVG信息生成场馆布局
+     * 解析场馆名称
      */
-    private fun generateVenueFromSvgInfo(
-        width: Float, 
-        height: Float, 
-        viewBox: FloatArray?, 
-        svgData: String
-    ): VenueLayout {
-        val venueId = "svg_venue_${System.currentTimeMillis()}"
-        val venueName = "SVG场馆"
-        
-        // 使用viewBox或原始尺寸
-        val actualWidth = viewBox?.get(2) ?: width
-        val actualHeight = viewBox?.get(3) ?: height
-        
-        // 创建舞台
-        val stage = Stage(
-            name = "舞台",
-            x = actualWidth / 2 - 100f,
-            y = 50f,
-            width = 200f,
-            height = 80f,
-            color = "#FF6B6B"
-        )
-        
-        // 生成座位区域
-        val areas = generateSvgAreas(actualWidth, actualHeight, stage)
-        
-        return VenueLayout(
-            id = venueId,
-            name = venueName,
-            type = VenueType.THEATER,
-            width = actualWidth,
-            height = actualHeight,
-            areas = areas,
-            stage = stage,
-            svgData = svgData,
-            maxScale = 6f,
-            minScale = 0.1f
-        )
+    private fun extractVenueName(svgString: String): String? {
+        // 尝试从metadata中提取
+        val metadataRegex = "<name>([^<]+)</name>".toRegex()
+        val match = metadataRegex.find(svgString)
+        return match?.groupValues?.get(1)
     }
     
     /**
-     * 生成SVG场馆的座位区域
+     * 解析舞台信息
      */
-    private fun generateSvgAreas(width: Float, height: Float, stage: Stage): List<SeatArea> {
+    private fun parseStage(svgString: String): Stage? {
+        // 查找足球场矩形
+        val stageRegex = """<rect\s+x="(\d+)"\s+y="(\d+)"\s+width="(\d+)"\s+height="(\d+)"\s+fill="#4CAF50"""".toRegex()
+        val match = stageRegex.find(svgString)
+        
+        return if (match != null) {
+            val x = match.groupValues[1].toFloat()
+            val y = match.groupValues[2].toFloat()
+            val width = match.groupValues[3].toFloat()
+            val height = match.groupValues[4].toFloat()
+            
+            Stage(
+                name = "足球场",
+                x = x,
+                y = y,
+                width = width,
+                height = height,
+                color = "#4CAF50"
+            )
+        } else {
+            null
+        }
+    }
+    
+    /**
+     * 解析座位区域
+     */
+    private fun parseSeatAreas(svgString: String): List<SeatArea> {
         val areas = mutableListOf<SeatArea>()
         
-        // 主厅区域（舞台下方）
-        val mainHallY = stage.y + stage.height + 50f
-        val mainHallHeight = height - mainHallY - 100f
+        // 查找所有带id的group元素
+        val groupRegex = """<g\s+id="([^"]+)"\s+data-name="([^"]+)"\s+data-color="([^"]+)">""".toRegex()
+        val matches = groupRegex.findAll(svgString)
         
-        if (mainHallHeight > 100f) {
-            areas.add(generateSeatArea(
-                id = "main_hall",
-                name = "主厅",
-                x = 100f,
-                y = mainHallY,
-                width = width - 200f,
-                height = mainHallHeight,
-                type = AreaType.NORMAL,
-                color = "#FFD93D"
-            ))
-        }
-        
-        // 左右包厢区域
-        val boxWidth = 80f
-        val boxHeight = 60f
-        val boxY = stage.y + stage.height + 20f
-        
-        // 左侧包厢
-        for (i in 0 until 5) {
-            areas.add(generateSeatArea(
-                id = "left_box_$i",
-                name = "左包厢${i + 1}",
-                x = 20f,
-                y = boxY + i * (boxHeight + 10f),
-                width = boxWidth,
-                height = boxHeight,
-                type = AreaType.BOX,
-                color = "#F38BA8"
-            ))
-        }
-        
-        // 右侧包厢
-        for (i in 0 until 5) {
-            areas.add(generateSeatArea(
-                id = "right_box_$i",
-                name = "右包厢${i + 1}",
-                x = width - boxWidth - 20f,
-                y = boxY + i * (boxHeight + 10f),
-                width = boxWidth,
-                height = boxHeight,
-                type = AreaType.BOX,
-                color = "#F38BA8"
-            ))
-        }
-        
-        // 楼座区域
-        val balconyY = height - 150f
-        if (balconyY > mainHallY + 100f) {
-            areas.add(generateSeatArea(
-                id = "balcony",
-                name = "楼座",
-                x = 150f,
-                y = balconyY,
-                width = width - 300f,
-                height = 120f,
-                type = AreaType.PREMIUM,
-                color = "#4ECDC4"
-            ))
+        matches.forEach { match ->
+            val areaId = match.groupValues[1]
+            val areaName = match.groupValues[2]
+            val areaColor = match.groupValues[3]
+            
+            // 查找该区域的主矩形
+            val areaContent = extractGroupContent(svgString, areaId)
+            val rectRegex = """<rect\s+x="(\d+)"\s+y="(\d+)"\s+width="(\d+)"\s+height="(\d+)"""".toRegex()
+            val rectMatch = rectRegex.find(areaContent)
+            
+            if (rectMatch != null) {
+                val x = rectMatch.groupValues[1].toFloat()
+                val y = rectMatch.groupValues[2].toFloat()
+                val width = rectMatch.groupValues[3].toFloat()
+                val height = rectMatch.groupValues[4].toFloat()
+                
+                // 生成座位
+                val seats = generateSeatsForArea(areaId, areaName, x, y, width, height)
+                
+                val areaType = when {
+                    areaName.contains("VIP") -> AreaType.VIP
+                    else -> AreaType.NORMAL
+                }
+                
+                areas.add(
+                    SeatArea(
+                        id = areaId,
+                        name = areaName,
+                        type = areaType,
+                        color = areaColor,
+                        x = x,
+                        y = y,
+                        width = width,
+                        height = height,
+                        seats = seats
+                    )
+                )
+            }
         }
         
         return areas
     }
     
     /**
-     * 生成座位区域
+     * 提取group内容
      */
-    private fun generateSeatArea(
-        id: String,
-        name: String,
-        x: Float,
-        y: Float,
-        width: Float,
-        height: Float,
-        type: AreaType,
-        color: String
-    ): SeatArea {
-        val seats = generateSeatsForArea(id, x, y, width, height, type)
+    private fun extractGroupContent(svgString: String, groupId: String): String {
+        val startTag = """<g\s+id="$groupId"[^>]*>""".toRegex()
+        val startMatch = startTag.find(svgString) ?: return ""
+        val startIndex = startMatch.range.last + 1
         
-        return SeatArea(
-            id = id,
-            name = name,
-            type = type,
-            color = color,
-            x = x,
-            y = y,
-            width = width,
-            height = height,
-            seats = seats
-        )
+        var depth = 1
+        var currentIndex = startIndex
+        
+        while (currentIndex < svgString.length && depth > 0) {
+            when {
+                svgString.substring(currentIndex).startsWith("<g") -> depth++
+                svgString.substring(currentIndex).startsWith("</g>") -> depth--
+            }
+            currentIndex++
+        }
+        
+        return if (depth == 0) {
+            svgString.substring(startIndex, currentIndex - 4) // 不包括</g>
+        } else {
+            ""
+        }
     }
     
     /**
@@ -181,60 +177,56 @@ class SvgParser(private val context: Context) {
      */
     private fun generateSeatsForArea(
         areaId: String,
-        areaX: Float,
-        areaY: Float,
-        areaWidth: Float,
-        areaHeight: Float,
-        areaType: AreaType
+        areaName: String,
+        x: Float,
+        y: Float,
+        width: Float,
+        height: Float
     ): List<Seat> {
         val seats = mutableListOf<Seat>()
         
-        val seatSize = when (areaType) {
-            AreaType.BOX -> 20f
-            AreaType.PREMIUM -> 25f
-            else -> 24f
+        val seatWidth = 25f
+        val seatHeight = 25f
+        val seatSpacing = 30f
+        val rowSpacing = 35f
+        
+        val seatsPerRow = maxOf(1, (width / seatSpacing).toInt())
+        val rows = maxOf(1, (height / rowSpacing).toInt())
+        
+        val price = when {
+            areaName.contains("VIP") -> 500.0
+            areaName.contains("A区") || areaName.contains("B区") -> 200.0
+            else -> 150.0
         }
         
-        val spacing = seatSize + 5f
-        val rowSpacing = seatSize + 10f
-        
-        val cols = ((areaWidth - 20f) / spacing).toInt().coerceAtLeast(1)
-        val rows = ((areaHeight - 20f) / rowSpacing).toInt().coerceAtLeast(1)
+        val padding = 20f
+        val startX = x + padding
+        val startY = y + padding
         
         for (row in 0 until rows) {
-            for (col in 0 until cols) {
-                val seatId = "${areaId}_${row + 1}_${col + 1}"
-                val seatName = "${row + 1}排${col + 1}号"
-                val seatX = areaX + 10f + col * spacing
-                val seatY = areaY + 10f + row * rowSpacing
+            for (seat in 0 until seatsPerRow) {
+                val seatId = "${areaId}_${row + 1}_${seat + 1}"
+                val seatName = "${row + 1}排${seat + 1}号"
+                val seatX = startX + seat * seatSpacing
+                val seatY = startY + row * rowSpacing
                 
-                // 随机设置座位状态
-                val status = when (Random.nextInt(20)) {
+                // 随机设置一些座位状态
+                val status = when ((row + seat) % 12) {
                     0, 1 -> SeatStatus.SOLD
-                    19 -> SeatStatus.UNAVAILABLE
+                    11 -> SeatStatus.UNAVAILABLE
                     else -> SeatStatus.AVAILABLE
                 }
-                
-                // 根据区域类型设置价格
-                val basePrice = when (areaType) {
-                    AreaType.BOX -> 800.0
-                    AreaType.PREMIUM -> 300.0
-                    AreaType.VIP -> 500.0
-                    else -> 150.0
-                }
-                
-                val price = basePrice + (rows - row) * 20.0 // 前排更贵
                 
                 seats.add(
                     Seat(
                         id = seatId,
                         row = (row + 1).toString(),
-                        column = (col + 1).toString(),
+                        column = (seat + 1).toString(),
                         name = seatName,
                         x = seatX,
                         y = seatY,
-                        width = seatSize,
-                        height = seatSize,
+                        width = seatWidth,
+                        height = seatHeight,
                         status = status,
                         price = price,
                         areaId = areaId
@@ -247,40 +239,29 @@ class SvgParser(private val context: Context) {
     }
     
     /**
-     * 从SVG字符串中提取尺寸信息
+     * 提取SVG尺寸
      */
-    private fun extractDimension(svgString: String, attribute: String): Float? {
-        val regex = Regex("$attribute\\s*=\\s*[\"']([^\"']+)[\"']")
+    private fun extractDimension(svgString: String, dimension: String): Float? {
+        val regex = """$dimension="(\d+)"""".toRegex()
         val match = regex.find(svgString)
-        val value = match?.groupValues?.get(1) ?: return null
-        
-        // 移除单位并转换为数字
-        val numericValue = value.replace(Regex("[^0-9.]"), "")
-        return numericValue.toFloatOrNull()
+        return match?.groupValues?.get(1)?.toFloatOrNull()
     }
     
     /**
-     * 从SVG字符串中提取viewBox信息
+     * 提取viewBox信息
      */
     private fun extractViewBox(svgString: String): FloatArray? {
-        val regex = Regex("viewBox\\s*=\\s*[\"']([^\"']+)[\"']")
-        val match = regex.find(svgString)
-        val value = match?.groupValues?.get(1) ?: return null
+        val viewBoxRegex = """viewBox="([\d\s.-]+)"""".toRegex()
+        val match = viewBoxRegex.find(svgString) ?: return null
         
-        val parts = value.trim().split(Regex("\\s+"))
-        if (parts.size >= 4) {
-            return try {
-                floatArrayOf(
-                    parts[0].toFloat(), // x
-                    parts[1].toFloat(), // y
-                    parts[2].toFloat(), // width
-                    parts[3].toFloat()  // height
-                )
-            } catch (e: NumberFormatException) {
-                null
-            }
-        }
-        
-        return null
+        val values = match.groupValues[1].split(Regex("\\s+"))
+        return if (values.size >= 4) {
+            floatArrayOf(
+                values[0].toFloatOrNull() ?: 0f,
+                values[1].toFloatOrNull() ?: 0f,
+                values[2].toFloatOrNull() ?: 0f,
+                values[3].toFloatOrNull() ?: 0f
+            )
+        } else null
     }
 }
